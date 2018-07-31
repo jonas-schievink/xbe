@@ -1,0 +1,53 @@
+[package]
+name = "xbe"
+version = "0.1.0"
+authors = ["Jonas Schievink <jonasschievink@gmail.com>"]
+# TODO: Write description
+#description = ""
+documentation = "https://docs.rs/xbe/"
+repository = "https://github.com/jonas-schievink/xbe.git"
+# TODO: Add up to 5 keywords
+#keywords = []
+# TODO: Add categories
+#categories = []
+readme = "README.md"
+license = "CC0-1.0"
+
+[dependencies]
+scroll = "0.9.0"
+bitflags = "1.0.3"
+log = "0.4.3"
+env_logger = "0.5.11"
+serde = "1.0.70"
+serde_derive = "1.0.70"
+bincode = "1.0.1"
+byteorder = "1.2.3"
+
+[dev-dependencies]
+version-sync = "0.5"
+
+
+# cargo-release configuration
+[package.metadata.release]
+tag-message = "{{version}}"
+no-dev-version = true
+pre-release-commit-message = "Release {{version}}"
+
+# Change the changelog's `Unreleased` section to refer to this release and
+# prepend new `Unreleased` section
+[[package.metadata.release.pre-release-replacements]]
+file    = "CHANGELOG.md"
+search  = "## Unreleased"
+replace = "## Unreleased\n\nNo changes.\n\n## {{version}} - {{date}}"
+
+# Bump the version inside the example manifest in `README.md`
+[[package.metadata.release.pre-release-replacements]]
+file    = "README.md"
+search  = 'xbe = "[a-z0-9\\.-]+"'
+replace = 'xbe = "{{version}}"'
+
+# Bump the version referenced by the `html_root_url` attribute in `lib.rs`
+[[package.metadata.release.pre-release-replacements]]
+file    = "src/lib.rs"
+search  = "https://docs.rs/xbe/[a-z0-9\\.-]+"
+replace = "https://docs.rs/xbe/{{version}}"

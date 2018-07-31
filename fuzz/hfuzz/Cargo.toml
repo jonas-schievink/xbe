@@ -1,0 +1,8 @@
+[package]
+name = "hfuzz"
+version = "0.1.0"
+authors = ["Jonas Schievink <jonasschievink@gmail.com>"]
+
+[dependencies]
+xbe = { path = "../.." }
+honggfuzz = "0.5"
