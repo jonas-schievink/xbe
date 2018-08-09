@@ -89,7 +89,7 @@ impl<T> SliceIndex<T> for RangeTo<u32> {
 
 
 /// Wraps any value and suppresses its debug output when printed with `{:?}`.
-pub struct NoDebug<T>(T);
+pub struct NoDebug<T>(pub T);
 
 impl<T> fmt::Debug for NoDebug<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

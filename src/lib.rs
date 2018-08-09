@@ -10,6 +10,7 @@
 //! [`Xbe`]: struct.Xbe.html
 
 #![doc(html_root_url = "https://docs.rs/xbe/0.1.0")]
+#![warn(missing_debug_implementations)]
 
 // Deny unchecked slice indexing when using clippy. This can almost always
 // result in a panic with a malformed XBE.
@@ -74,10 +75,23 @@ impl<'a> Xbe<'a> {
 
         let header = Header::from_raw(&raw::Header::parse(&mut &*data)?, data)?;
 
+        let mut this = Self {
+            thunk_table: KernelThunkTable::dummy(),
+            header,
+            image_kind: ImageKind::Retail,
+            data: NoDebug::from(data),
+        };
+
+        this.guess_image_kind()?;
+
+        Ok(this)
+    }
+
+    fn guess_image_kind(&mut self) -> Result<(), Error> {
         let mut image_kind = None;
         for &kind in &[ImageKind::Retail, ImageKind::Debug] {
-            let (entry_addr, thunk_addr) = (header.entry_point(kind), header.kernel_thunk_addr(kind));
-            let (entry_info, thunk_info) = (header.find_address_info(entry_addr), header.find_address_info(thunk_addr));
+            let (entry_addr, thunk_addr) = (self.header.entry_point(kind), self.header.kernel_thunk_addr(kind));
+            let (entry_info, thunk_info) = (self.find_address_info(entry_addr), self.find_address_info(thunk_addr));
             info!("{:?} entry point: {}", kind, entry_info);
             info!("{:?} thunk addr: {}", kind, thunk_info);
 
@@ -94,20 +108,18 @@ impl<'a> Xbe<'a> {
             fallback
         });
 
-        Ok(Self {
-            thunk_table: {
-                let virt_addr = header.kernel_thunk_addr(image_kind);
-                let raw_addr = header.translate_virt_addr(virt_addr)
-                    .ok_or_else(|| Error::Malformed(format!(
-                        "kernel thunk virt. address {:#08X} not mapped", virt_addr
-                    )))?;
+        self.thunk_table = {
+            let virt_addr = self.header.kernel_thunk_addr(image_kind);
+            let raw_addr = self.header.translate_virt_addr(virt_addr)
+                .ok_or_else(|| Error::Malformed(format!(
+                    "kernel thunk virt. address {:#08X} not mapped", virt_addr
+                )))?;
 
-                KernelThunkTable::from_raw(data, virt_addr, raw_addr)?
-            },
-            header,
-            image_kind,
-            data: NoDebug::from(data),
-        })
+            KernelThunkTable::from_raw(&*self.data, virt_addr, raw_addr)?
+        };
+        self.image_kind = image_kind;
+
+        Ok(())
     }
 
     /// Returns the decoded title name from the image's included certificate.
@@ -144,14 +156,45 @@ impl<'a> Xbe<'a> {
         &self.header
     }
 
-    /// Get a reference to the section headers in the image.
-    pub fn section_headers(&self) -> &[SectionHeader] {
-        &self.header.section_headers
-    }
-
     /// Returns an iterator over the sections in this XBE.
     pub fn sections(&self) -> Sections {
         Sections::new(&self.header.section_headers, &*self.data)
+    }
+
+    /// Scans the section headers to find a section that contains the given
+    /// virtual address.
+    pub fn find_section_containing(&self, virt_addr: u32) -> Option<Section> {
+        self.header.section_headers.iter().find(|section| {
+            *section.virt_range().start() <= virt_addr && *section.virt_range().end() >= virt_addr
+        }).map(|header| {
+            Section::from_xbe_and_header(&*self.data, header)
+        })
+    }
+
+    /// Scans the section headers for a section whose virtual address range
+    /// contains the given address.
+    ///
+    /// Returns an `AddressInfo` object for debug printing the address, its
+    /// containing section and its offset into the section.
+    // TODO rename this?
+    pub fn find_address_info(&self, virt_addr: u32) -> AddressInfo {
+        let section = self.find_section_containing(virt_addr);
+        let offset = if let Some(s) = &section {
+            virt_addr - s.virt_range().start()
+        } else {
+            0
+        };
+
+        AddressInfo {
+            section,
+            offset,
+            address: virt_addr,
+        }
+    }
+
+    /// Returns the raw image data this XBE was decoded from.
+    pub fn raw_data(&self) -> &[u8] {
+        &*self.data
     }
 }
 
@@ -443,31 +486,10 @@ impl Header {
 
     /// Scans the section headers to find a section that contains the given
     /// virtual address.
-    pub fn find_section_containing(&self, virt_addr: u32) -> Option<&SectionHeader> {
+    fn find_section_containing(&self, virt_addr: u32) -> Option<&SectionHeader> {
         self.section_headers.iter().find(|section| {
             *section.virt_range().start() <= virt_addr && *section.virt_range().end() >= virt_addr
         })
-    }
-
-    /// Scans the section headers for a section whose virtual address range
-    /// contains the given address.
-    ///
-    /// Returns an `AddressInfo` object for debug printing the address, its
-    /// containing section and its offset into the section.
-    // TODO rename this?
-    pub fn find_address_info(&self, virt_addr: u32) -> AddressInfo {
-        let section = self.find_section_containing(virt_addr);
-        let offset = if let Some(s) = section {
-            virt_addr - s.virt_range().start()
-        } else {
-            0
-        };
-
-        AddressInfo {
-            section,
-            offset,
-            address: virt_addr,
-        }
     }
 
     /// Translates a virtual address to an offset into the XBE image.
@@ -514,7 +536,7 @@ bitflags! {
 #[derive(Debug)]
 pub struct AddressInfo<'a> {
     /// Section header of the section `address` is located in (if any).
-    section: Option<&'a SectionHeader>,
+    section: Option<Section<'a>>,
     /// Offset from start of section. 0 if not in a section.
     offset: u32,
     /// Virtual address to look up.
@@ -527,15 +549,28 @@ impl<'a> AddressInfo<'a> {
         self.address
     }
 
+    /// Returns the offset of `virt_addr` into its containing section.
+    ///
+    /// Returns `None` if `virt_addr` is not inside any section of the XBE.
+    pub fn offset(&self) -> Option<u32> {
+        if self.section.is_some() {
+            Some(self.offset)
+        } else {
+            None
+        }
+    }
+
     /// Returns the section containing the virtual address.
-    pub fn section(&self) -> Option<&SectionHeader> {
-        self.section
+    ///
+    /// Returns `None` if `virt_addr` is not inside any section of the XBE.
+    pub fn section(&self) -> Option<&Section<'a>> {
+        self.section.as_ref()
     }
 }
 
 impl<'a> fmt::Display for AddressInfo<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(section) = self.section {
+        if let Some(section) = &self.section {
             let virt_range = section.virt_range();
             let raw_range = section.raw_range();
             let (vstart, vend) = (virt_range.start(), virt_range.end());
@@ -555,16 +590,17 @@ impl<'a> fmt::Display for AddressInfo<'a> {
 }
 
 /// Iterator over the sections in an XBE image.
+#[derive(Debug)]
 pub struct Sections<'a> {
     headers: std::slice::Iter<'a, SectionHeader>,
-    image: &'a [u8],
+    image: NoDebug<&'a [u8]>,
 }
 
 impl<'a> Sections<'a> {
     fn new(headers: &'a [SectionHeader], image: &'a [u8]) -> Self {
         Self {
             headers: headers.iter(),
-            image,
+            image: NoDebug(image),
         }
     }
 }
@@ -575,36 +611,61 @@ impl<'a> Iterator for Sections<'a> {
     fn next(&mut self) -> Option<<Self as Iterator>::Item> {
         let header = self.headers.next()?;
 
-        Some(Section {
-            data: self.image.try_get(header.raw_range())
-                .expect("raw_range not in image bounds (internal error)"),
-            header,
-        })
+        Some(Section::from_xbe_and_header(&*self.image, header))
     }
 }
 
 /// A section pointing into the image's memory.
 ///
 /// This contains all information needed to set up the section's virtual memory.
+#[derive(Debug)]
 pub struct Section<'a> {
     /// Bytes making up the section data in the image.
-    data: &'a [u8],
+    data: NoDebug<&'a [u8]>,
     header: &'a SectionHeader,
 }
 
 impl<'a> Section<'a> {
-    /// Get the section header, which specifies where and how to map the data.
-    pub fn header(&self) -> &SectionHeader {
-        self.header
+    fn from_xbe_and_header(xbe_data: &'a [u8], header: &'a SectionHeader) -> Self {
+        Self {
+            data: NoDebug(xbe_data.try_get(header.raw_range())
+                .expect("raw_range not in image bounds (internal error)")),
+            header,
+        }
     }
 
-    /// Returns the XBE image data to fill this section with.
+    /// The range of virtual addresses this section should be mapped into.
+    pub fn virt_range(&self) -> RangeInclusive<u32> {
+        self.header.virt_range.clone()
+    }
+
+    /// The memory range inside the XBE image to be mapped to the virtual range.
+    ///
+    /// The returned range is guaranteed to be inside the bounds of the XBE
+    /// image.
+    // FIXME is this the *file* range or does it take the base addr into acct?
+    pub fn raw_range(&self) -> RangeInclusive<u32> {
+        self.header.raw_range.clone()
+    }
+
+    /// Returns the section's name.
+    pub fn name(&self) -> &str {
+        &self.header.name
+    }
+
+    /// Gets the section flags that configure *how* the section should be
+    /// mapped.
+    pub fn flags(&self) -> &SectionFlags {
+        &self.header.section_flags
+    }
+
+    /// Returns the section's contents stored in the XBE image.
     ///
     /// This is the data in the image file and might not suffice to fill all the
     /// virtual memory occupied by the section.
     // TODO: what happens then?
     pub fn data(&self) -> &[u8] {
-        self.data
+        &*self.data
     }
 }
 
@@ -614,7 +675,7 @@ impl<'a> Section<'a> {
 /// virtual memory by the loader. The section header specifies where and how
 /// that mapping happens.
 #[derive(Debug)]
-pub struct SectionHeader {
+struct SectionHeader {
     section_flags: SectionFlags,
     virt_range: RangeInclusive<u32>,
     raw_range: RangeInclusive<u32>,
@@ -667,17 +728,6 @@ impl SectionHeader {
     // FIXME is this the *file* range or does it take the base addr into acct?
     pub fn raw_range(&self) -> RangeInclusive<u32> {
         self.raw_range.clone()
-    }
-
-    /// Returns the section's name.
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    /// Gets the section flags that configure *how* the section should be
-    /// mapped.
-    pub fn flags(&self) -> &SectionFlags {
-        &self.section_flags
     }
 }
 
@@ -795,6 +845,15 @@ pub struct KernelThunkTable {
 }
 
 impl KernelThunkTable {
+    fn dummy() -> Self {
+        Self {
+            import_ids: Vec::new(),
+            virt_range: 0..=0,
+            image_range: 0..=0,
+            bytes: 0,
+        }
+    }
+
     /// Decode thunk table from the XBE image at an offset.
     ///
     /// Returns an error if the table isn't properly terminated or is out of
