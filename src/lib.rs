@@ -151,11 +151,6 @@ impl<'a> Xbe<'a> {
         &self.thunk_table
     }
 
-    /// Get a reference to the parsed image header.
-    pub fn header(&self) -> &Header {
-        &self.header
-    }
-
     /// Returns an iterator over the sections in this XBE.
     pub fn sections(&self) -> Sections {
         Sections::new(&self.header.section_headers, &*self.data)
@@ -192,6 +187,52 @@ impl<'a> Xbe<'a> {
         }
     }
 
+    /// Get a reference to the included certificate.
+    ///
+    /// The certificate contains various information about the game (such as its
+    /// title, region and ratings), as well as a few signing keys.
+    pub fn cert(&self) -> &Certificate {
+        &self.header.cert
+    }
+
+    /// Get a reference to the logo bitmap included in the XBE image.
+    ///
+    /// In most cases, this is unfortunately just the Microsoft logo instead of
+    /// a game-specific one.
+    pub fn logo(&self) -> &LogoBitmap {
+        &self.header.logo_bitmap
+    }
+
+    /// Init / Loader flags.
+    pub fn init_flags(&self) -> &InitFlags {
+        &self.header.init_flags
+    }
+
+    /// Number of bytes of stack space to commit to RAM when loading the XBE.
+    ///
+    /// The *reserved* amount of stack space doesn't seem to be configured in
+    /// the header.
+    pub fn stack_commit(&self) -> u32 {
+        self.header.pe_stack_commit
+    }
+
+    /// Number of bytes to reserve for the process heap.
+    ///
+    /// Reserved memory exists as virtual memory, but has no backing storage in
+    /// RAM or swap. Instead, backing memory is allocated when a page is first
+    /// used.
+    ///
+    /// The heap can also be configured to have a subset of its memory committed
+    /// at load time using `heap_commit`.
+    pub fn heap_reserve(&self) -> u32 {
+        self.header.pe_heap_reserve
+    }
+
+    /// Number of heap bytes to commit to RAM at load time.
+    pub fn heap_commit(&self) -> u32 {
+        self.header.pe_heap_commit
+    }
+
     /// Returns the raw image data this XBE was decoded from.
     pub fn raw_data(&self) -> &[u8] {
         &*self.data
@@ -215,7 +256,7 @@ pub enum ImageKind {
 ///
 /// Contains the locations of all other headers.
 #[derive(Debug)]
-pub struct Header {
+struct Header {
     /// MS signature.
     signature: raw::Signature,
     /// Address at which the XBE image should be loaded.
@@ -402,52 +443,6 @@ impl Header {
         })
     }
 
-    /// Get a reference to the included certificate.
-    ///
-    /// The certificate contains various information about the game (such as its
-    /// title, region and ratings), as well as a few signing keys.
-    pub fn cert(&self) -> &Certificate {
-        &self.cert
-    }
-
-    /// Get a reference to the logo bitmap included in the XBE image.
-    ///
-    /// In most cases, this is unfortunately just the Microsoft logo instead of
-    /// a game-specific one.
-    pub fn logo(&self) -> &LogoBitmap {
-        &self.logo_bitmap
-    }
-
-    /// Init / Loader flags.
-    pub fn init_flags(&self) -> &InitFlags {
-        &self.init_flags
-    }
-
-    /// Number of bytes of stack space to commit to RAM when loading the XBE.
-    ///
-    /// The *reserved* amount of stack space doesn't seem to be configured in
-    /// the header.
-    pub fn stack_commit(&self) -> u32 {
-        self.pe_stack_commit
-    }
-
-    /// Number of bytes to reserve for the process heap.
-    ///
-    /// Reserved memory exists as virtual memory, but has no backing storage in
-    /// RAM or swap. Instead, backing memory is allocated when a page is first
-    /// used.
-    ///
-    /// The heap can also be configured to have a subset of its memory committed
-    /// at load time using `heap_commit`.
-    pub fn heap_reserve(&self) -> u32 {
-        self.pe_heap_reserve
-    }
-
-    /// Number of heap bytes to commit to RAM at load time.
-    pub fn heap_commit(&self) -> u32 {
-        self.pe_heap_commit
-    }
-
     /// Return the decoded entry point, assuming it was encoded for the given
     /// image kind (retail or debug Xbox).
     ///
@@ -455,7 +450,7 @@ impl Header {
     /// image kind automatically.
     ///
     /// [`Xbe::entry_point`]: struct.Xbe.html#method.entry_point
-    pub fn entry_point(&self, image_kind: ImageKind) -> u32 {
+    fn entry_point(&self, image_kind: ImageKind) -> u32 {
         match image_kind {
             ImageKind::Debug => self.entry_point ^ ENTRY_XOR_DEBUG,
             ImageKind::Retail => self.entry_point ^ ENTRY_XOR_RETAIL,
@@ -477,7 +472,7 @@ impl Header {
     /// image kind and returns an already decoded thunk table.
     ///
     /// [`Xbe::kernel_thunk_table`]: struct.Xbe.html#method.kernel_thunk_table
-    pub fn kernel_thunk_addr(&self, image_kind: ImageKind) -> u32 {
+    fn kernel_thunk_addr(&self, image_kind: ImageKind) -> u32 {
         match image_kind {
             ImageKind::Debug => self.kernel_thunk_addr ^ THUNK_XOR_DEBUG,
             ImageKind::Retail => self.kernel_thunk_addr ^ THUNK_XOR_RETAIL,
