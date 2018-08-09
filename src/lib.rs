@@ -679,7 +679,7 @@ impl<'a> Section<'a> {
     }
 
     /// Returns the section's name.
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         &self.header.name
     }
 
