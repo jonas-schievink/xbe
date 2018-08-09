@@ -55,8 +55,8 @@ const THUNK_XOR_RETAIL: u32 = 0x5B6D40B6;
 ///
 /// Using the `parse` method, you can parse an `Xbe` from raw bytes.
 ///
-/// The `Xbe` type provides access to the parsed `Header` as well as a few
-/// utility methods that make useful operations easier.
+/// The `Xbe` type provides access to the information in the XBE header as well
+/// as a few utility methods that make useful operations easier.
 #[derive(Debug)]
 pub struct Xbe<'a> {
     header: Header,
@@ -208,6 +208,15 @@ impl<'a> Xbe<'a> {
         &self.header.init_flags
     }
 
+    /// Returns the XBE's base address.
+    ///
+    /// This is similar to the base address in Portable Executable (PE) files.
+    /// The XBE should be loaded into the virtual memory space of the program
+    /// so that its first byte is at this virtual address.
+    pub fn base_address(&self) -> u32 {
+        self.header.base_addr
+    }
+
     /// Number of bytes of stack space to commit to RAM when loading the XBE.
     ///
     /// The *reserved* amount of stack space doesn't seem to be configured in
@@ -231,6 +240,32 @@ impl<'a> Xbe<'a> {
     /// Number of heap bytes to commit to RAM at load time.
     pub fn heap_commit(&self) -> u32 {
         self.header.pe_heap_commit
+    }
+
+    /// Returns the list of libraries this XBE links against.
+    pub fn libraries(&self) -> &[LibraryVersion] {
+        &self.header.library_versions
+    }
+
+    /// Returns the XBE signature.
+    ///
+    /// For legitimate XBE's, this is a Microsoft signature. For homebrew, this
+    /// can contain garbage.
+    pub fn signature(&self) -> &[u8; 256] {
+        &self.header.signature.0
+    }
+
+    /// Returns the "debug path", the path to the source file of the XBE.
+    ///
+    /// This is normally set to the path to the `.exe` that was converted to the
+    /// XBE format and is thus a path on the developer's machine.
+    pub fn debug_path(&self) -> &str {
+        &self.header.debug_pathname
+    }
+
+    /// Returns the "debug filename", the name of the source file of the XBE.
+    pub fn debug_filename(&self) -> &str {
+        &self.header.debug_unicode_filename
     }
 
     /// Returns the raw image data this XBE was decoded from.
