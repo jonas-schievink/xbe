@@ -217,6 +217,14 @@ impl<'a> Xbe<'a> {
         self.header.base_addr
     }
 
+    /// Size of all the headers, starting at the beginning of the file.
+    ///
+    /// The headers should be mapped into the XBE's address space at the
+    /// specified [`base_address`](#method.base_address).
+    pub fn header_size(&self) -> u32 {
+        self.header.header_size
+    }
+
     /// Number of bytes of stack space to commit to RAM when loading the XBE.
     ///
     /// The *reserved* amount of stack space doesn't seem to be configured in
