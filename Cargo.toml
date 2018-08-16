@@ -2,14 +2,11 @@
 name = "xbe"
 version = "0.1.0"
 authors = ["Jonas Schievink <jonasschievink@gmail.com>"]
-# TODO: Write description
-#description = ""
+description = "A parser for .xbe files (Xbox executable)"
 documentation = "https://docs.rs/xbe/"
 repository = "https://github.com/jonas-schievink/xbe.git"
-# TODO: Add up to 5 keywords
-#keywords = []
-# TODO: Add categories
-#categories = []
+keywords = ["xbox", "xbe", "executable", "rom"]
+categories = ["parser-implementations"]
 readme = "README.md"
 license = "CC0-1.0"
 
