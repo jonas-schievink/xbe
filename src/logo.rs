@@ -7,9 +7,9 @@ use std::fmt;
 
 /// A 100x17 grayscale logo stored in the XBE file.
 ///
-/// The logo can be retrieved using [`Header::logo`].
+/// The logo can be retrieved using [`Xbe::logo`].
 ///
-/// [`Header::logo`]: struct.Header.html#method.logo
+/// [`Xbe::logo`]: struct.Xbe.html#method.logo
 pub struct LogoBitmap {
     /// Pixel value are from 0 - 15 (4 bit).
     pixels: [[u8; 100]; 17],
