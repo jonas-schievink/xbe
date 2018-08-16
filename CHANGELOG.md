@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+No changes.
+
+## 0.1.1 - 2018-08-16
+
 ### Fixes
 
 * Remove unused dependencies

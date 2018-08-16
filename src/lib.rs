@@ -9,7 +9,7 @@
 //! [website]: http://www.caustik.com/cxbx/download/xbe.htm
 //! [`Xbe`]: struct.Xbe.html
 
-#![doc(html_root_url = "https://docs.rs/xbe/0.1.0")]
+#![doc(html_root_url = "https://docs.rs/xbe/0.1.1")]
 #![warn(missing_debug_implementations)]
 
 // Deny unchecked slice indexing when using clippy. This can almost always

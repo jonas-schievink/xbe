@@ -17,7 +17,7 @@ Start by adding an entry to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-xbe = "0.1.0"
+xbe = "0.1.1"
 ```
 
 Then import the crate into your Rust code:
