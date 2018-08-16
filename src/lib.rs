@@ -22,9 +22,7 @@
 #[macro_use] extern crate serde_derive;
 extern crate serde;
 extern crate bincode;
-extern crate scroll;
 extern crate byteorder;
-extern crate core;
 
 pub mod cert;
 mod error;
