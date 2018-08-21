@@ -671,6 +671,9 @@ impl<'a> Section<'a> {
     }
 
     /// The range of virtual addresses this section should be mapped into.
+    ///
+    /// Note that the range is not aligned to page boundaries. In fact, sections
+    /// can share a single page as long as they don't collide inside that page.
     pub fn virt_range(&self) -> RangeInclusive<u32> {
         self.header.virt_range.clone()
     }
