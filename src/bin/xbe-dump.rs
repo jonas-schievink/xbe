@@ -1,24 +1,30 @@
+//! Dumps information about an XBE stored in its headers.
+
 extern crate xbe;
 extern crate env_logger;
+#[macro_use] extern crate structopt;
 
 use xbe::Xbe;
+use structopt::StructOpt;
 
-use std::{env, process};
 use std::fs::read;
+use std::path::PathBuf;
 use std::error::Error;
+
+#[derive(Debug, StructOpt)]
+#[structopt(name = "xbe-dump", about = "Dump info from XBE headers to stdout.")]
+struct Opts {
+    /// Path to the XBE file.
+    #[structopt(parse(from_os_str))]
+    xbe: PathBuf,
+}
 
 fn main() -> Result<(), Box<Error>> {
     env_logger::init();
 
-    let path = match env::args().nth(1) {
-        Some(path) => path,
-        None => {
-            eprintln!("missing argument: path to XBE file");
-            process::exit(1);
-        }
-    };
+    let opts = Opts::from_args();
 
-    let data = read(path)?;
+    let data = read(&opts.xbe)?;
     let xbe = Xbe::parse(&data)?;
     println!("{:#?}", xbe);
     Ok(())
