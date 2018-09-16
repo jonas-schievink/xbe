@@ -11,6 +11,7 @@
 
 #![doc(html_root_url = "https://docs.rs/xbe/0.1.1")]
 #![warn(missing_debug_implementations)]
+#![forbid(unsafe_code)]
 
 // Deny unchecked slice indexing when using clippy. This can almost always
 // result in a panic with a malformed XBE.
