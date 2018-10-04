@@ -2,7 +2,10 @@
 
 extern crate xbe;
 extern crate env_logger;
-#[macro_use] extern crate structopt;
+
+#[allow(unused_imports)]
+#[macro_use]
+extern crate structopt;
 
 use xbe::Xbe;
 use structopt::StructOpt;
