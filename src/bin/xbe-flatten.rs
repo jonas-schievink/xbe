@@ -49,10 +49,10 @@ fn main() -> Result<(), Box<Error>> {
 
     eprintln!("Reading from {}", opt.xbe.display());
     let data = read(&opt.xbe)?;
+    let xbe = Xbe::parse(&data)?;
     let out = opt.output.unwrap_or(opt.xbe.with_extension(DEFAULT_OUTPUT_EXTENSION));
     eprintln!("  Writing to {}", out.display());
     let mut out = BufWriter::new(File::create(&out)?);
-    let xbe = Xbe::parse(&data)?;
 
     // Fill with zeros up to the base address
     fill_up_to(&mut out, xbe.base_address().into())?;
