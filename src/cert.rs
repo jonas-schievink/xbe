@@ -52,7 +52,7 @@ impl Certificate {
             title_id: raw.title_id,
             title_name: {
                 let s = String::from_utf16_lossy(&raw.title_name.0);
-                s.trim_right_matches('\0').to_string()
+                s.trim_end_matches('\0').to_string()
             },
             alt_title_ids: raw.alt_title_ids,
             allowed_media: {
