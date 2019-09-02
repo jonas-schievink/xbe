@@ -43,7 +43,7 @@ fn fill_up_to<W: Write + Seek>(writer: &mut W, pos: u64) -> Result<(), io::Error
     Ok(())
 }
 
-fn main() -> Result<(), Box<Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     let opt = Opts::from_args();
 

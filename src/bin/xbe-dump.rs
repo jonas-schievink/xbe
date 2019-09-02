@@ -22,7 +22,7 @@ struct Opts {
     xbe: PathBuf,
 }
 
-fn main() -> Result<(), Box<Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
     let opts = Opts::from_args();
