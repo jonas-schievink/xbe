@@ -21,7 +21,7 @@ byteorder = "1.2.3"
 structopt = "0.3.0"
 
 [dev-dependencies]
-version-sync = "0.8"
+version-sync = "0.9"
 
 
 # cargo-release configuration
