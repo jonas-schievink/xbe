@@ -38,7 +38,7 @@ struct Opts {
 fn fill_up_to<W: Write + Seek>(writer: &mut W, pos: u64) -> Result<(), io::Error> {
     let current = writer.seek(SeekFrom::Current(0))?;
     for _ in current..pos {
-        writer.write(&[FILLER])?;
+        writer.write_all(&[FILLER])?;
     }
     Ok(())
 }
