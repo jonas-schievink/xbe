@@ -18,7 +18,7 @@ use std::io::{self, BufWriter, Write, Seek, SeekFrom};
 use std::path::PathBuf;
 use std::error::Error;
 
-const DEFAULT_OUTPUT_EXTENSION: &'static str = "flat";
+const DEFAULT_OUTPUT_EXTENSION: &str = "flat";
 
 /// Filler byte used for data that is not mapped from the XBE.
 const FILLER: u8 = 0;
