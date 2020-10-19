@@ -32,10 +32,10 @@ mod logo;
 mod raw;
 mod utils;
 
-pub use error::Error;
-pub use logo::LogoBitmap;
-use cert::Certificate;
-use utils::{SliceExt, NoDebug};
+pub use crate::error::Error;
+pub use crate::logo::LogoBitmap;
+use crate::cert::Certificate;
+use crate::utils::{SliceExt, NoDebug};
 
 use byteorder::{ReadBytesExt, LE};
 use std::time::{UNIX_EPOCH, SystemTime, Duration};

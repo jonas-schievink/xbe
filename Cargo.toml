@@ -9,6 +9,7 @@ keywords = ["xbox", "xbe", "executable", "rom"]
 categories = ["parser-implementations"]
 readme = "README.md"
 license = "0BSD"
+edition = "2018"
 
 [dependencies]
 bitflags = "1.0.3"

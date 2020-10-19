@@ -1,6 +1,6 @@
 //! Provides types and methods to decode the logo bitmap of an XBE file.
 
-use Error;
+use crate::Error;
 
 use byteorder::ReadBytesExt;
 use std::fmt;

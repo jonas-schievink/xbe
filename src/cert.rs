@@ -3,8 +3,8 @@
 //! The certificate contains a lot of metadata for the game (such as the
 //! human-readable name of the title, which is useful for display purposes).
 
-use error::Error;
-use raw;
+use crate::error::Error;
+use crate::raw;
 
 use std::fmt;
 use std::time::{SystemTime, Duration, UNIX_EPOCH};

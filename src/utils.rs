@@ -1,4 +1,4 @@
-use error::Error;
+use crate::error::Error;
 
 use std::ops::{Range, RangeInclusive, RangeFrom, RangeTo, Deref, DerefMut};
 use std::fmt;

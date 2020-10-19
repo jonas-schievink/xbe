@@ -12,7 +12,7 @@
 //!
 //! Everything is Little Endian.
 
-use Error;
+use crate::Error;
 use serde::de;
 
 use std::{fmt, u32};
