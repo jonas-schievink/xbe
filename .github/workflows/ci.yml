@@ -12,7 +12,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "--deny warnings"
   MSRV: 1.40.0
 
 jobs:
@@ -27,6 +26,8 @@ jobs:
           - macOS-latest
           - windows-latest
     runs-on: ${{ matrix.os }}
+    env:
+      RUSTFLAGS: "--deny warnings"
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
