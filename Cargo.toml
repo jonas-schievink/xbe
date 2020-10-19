@@ -8,7 +8,7 @@ repository = "https://github.com/jonas-schievink/xbe.git"
 keywords = ["xbox", "xbe", "executable", "rom"]
 categories = ["parser-implementations"]
 readme = "README.md"
-license = "CC0-1.0"
+license = "0BSD"
 
 [dependencies]
 bitflags = "1.0.3"
