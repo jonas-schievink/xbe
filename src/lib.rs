@@ -15,8 +15,8 @@
 
 // Deny unchecked slice indexing when using clippy. This can almost always
 // result in a panic with a malformed XBE.
-#![cfg_attr(feature = "cargo-clippy", deny(indexing_slicing))]
-#![cfg_attr(feature = "cargo-clippy", allow(unreadable_literal, large_digit_groups))]
+#![deny(clippy::indexing_slicing)]
+#![allow(clippy::unreadable_literal, clippy::large_digit_groups)]
 
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate log;
@@ -811,7 +811,7 @@ impl LibraryVersion {
             name: {
                 let name_end = raw.library_name.iter().position(|b| *b == 0).unwrap_or(0);
 
-                #[cfg_attr(feature = "cargo-clippy", allow(indexing_slicing))]
+                #[allow(clippy::indexing_slicing)]
                 let bytes = &raw.library_name[..name_end];
 
                 String::from_utf8_lossy(bytes).to_string()
