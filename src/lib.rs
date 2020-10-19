@@ -12,18 +12,20 @@
 #![doc(html_root_url = "https://docs.rs/xbe/0.1.1")]
 #![warn(missing_debug_implementations)]
 #![forbid(unsafe_code)]
-
 // Deny unchecked slice indexing when using clippy. This can almost always
 // result in a panic with a malformed XBE.
 #![deny(clippy::indexing_slicing)]
 #![allow(clippy::unreadable_literal, clippy::large_digit_groups)]
 
-#[macro_use] extern crate bitflags;
-#[macro_use] extern crate log;
-#[macro_use] extern crate serde_derive;
-extern crate serde;
+#[macro_use]
+extern crate bitflags;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate serde_derive;
 extern crate bincode;
 extern crate byteorder;
+extern crate serde;
 
 pub mod cert;
 mod error;
@@ -32,14 +34,14 @@ mod logo;
 mod raw;
 mod utils;
 
+use crate::cert::Certificate;
 pub use crate::error::Error;
 pub use crate::logo::LogoBitmap;
-use crate::cert::Certificate;
-use crate::utils::{SliceExt, NoDebug};
+use crate::utils::{NoDebug, SliceExt};
 
 use byteorder::{ReadBytesExt, LE};
-use std::time::{UNIX_EPOCH, SystemTime, Duration};
 use std::ops::RangeInclusive;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{fmt, u32};
 
 /// "XBEH"
@@ -69,7 +71,10 @@ impl<'a> Xbe<'a> {
     /// Tries to parse an XBE file from raw data.
     pub fn parse(data: &'a [u8]) -> Result<Self, Error> {
         if data.len() >= u32::MAX as usize {
-            return Err(Error::Malformed(format!("image too large ({} Bytes)", data.len())));
+            return Err(Error::Malformed(format!(
+                "image too large ({} Bytes)",
+                data.len()
+            )));
         }
 
         let header = Header::from_raw(&raw::Header::parse(&mut &*data)?, data)?;
@@ -89,8 +94,14 @@ impl<'a> Xbe<'a> {
     fn guess_image_kind(&mut self) -> Result<(), Error> {
         let mut image_kind = None;
         for &kind in &[ImageKind::Retail, ImageKind::Debug] {
-            let (entry_addr, thunk_addr) = (self.header.entry_point(kind), self.header.kernel_thunk_addr(kind));
-            let (entry_info, thunk_info) = (self.find_address_info(entry_addr), self.find_address_info(thunk_addr));
+            let (entry_addr, thunk_addr) = (
+                self.header.entry_point(kind),
+                self.header.kernel_thunk_addr(kind),
+            );
+            let (entry_info, thunk_info) = (
+                self.find_address_info(entry_addr),
+                self.find_address_info(thunk_addr),
+            );
             info!("{:?} entry point: {}", kind, entry_info);
             info!("{:?} thunk addr: {}", kind, thunk_info);
 
@@ -103,16 +114,21 @@ impl<'a> Xbe<'a> {
 
         let image_kind = image_kind.unwrap_or_else(|| {
             let fallback = ImageKind::Retail;
-            warn!("couldn't determine image kind, falling back to {:?}", fallback);
+            warn!(
+                "couldn't determine image kind, falling back to {:?}",
+                fallback
+            );
             fallback
         });
 
         self.thunk_table = {
             let virt_addr = self.header.kernel_thunk_addr(image_kind);
-            let raw_addr = self.header.translate_virt_addr(virt_addr)
-                .ok_or_else(|| Error::Malformed(format!(
-                    "kernel thunk virt. address {:#08X} not mapped", virt_addr
-                )))?;
+            let raw_addr = self.header.translate_virt_addr(virt_addr).ok_or_else(|| {
+                Error::Malformed(format!(
+                    "kernel thunk virt. address {:#08X} not mapped",
+                    virt_addr
+                ))
+            })?;
 
             KernelThunkTable::from_raw(&*self.data, virt_addr, raw_addr)?
         };
@@ -158,11 +174,14 @@ impl<'a> Xbe<'a> {
     /// Scans the section headers to find a section that contains the given
     /// virtual address.
     pub fn find_section_containing(&self, virt_addr: u32) -> Option<Section> {
-        self.header.section_headers.iter().find(|section| {
-            *section.virt_range().start() <= virt_addr && *section.virt_range().end() >= virt_addr
-        }).map(|header| {
-            Section::from_xbe_and_header(&*self.data, header)
-        })
+        self.header
+            .section_headers
+            .iter()
+            .find(|section| {
+                *section.virt_range().start() <= virt_addr
+                    && *section.virt_range().end() >= virt_addr
+            })
+            .map(|header| Section::from_xbe_and_header(&*self.data, header))
     }
 
     /// Scans the section headers for a section whose virtual address range
@@ -367,7 +386,9 @@ impl Header {
                 Ok(String::new())
             } else {
                 let addr = raw.rel_addr(addr);
-                let string = data.try_get(addr..)?.iter()
+                let string = data
+                    .try_get(addr..)?
+                    .iter()
                     .take_while(|b| **b != 0)
                     .map(|b| *b as char)
                     .collect::<String>();
@@ -400,7 +421,8 @@ impl Header {
 
         if raw.magic != MAGIC_NUMBER {
             return Err(Error::Malformed(format!(
-                "invalid magic number (got {:#X}, expected {:#X}", raw.magic, MAGIC_NUMBER
+                "invalid magic number (got {:#X}, expected {:#X}",
+                raw.magic, MAGIC_NUMBER
             )));
         }
 
@@ -428,7 +450,11 @@ impl Header {
             init_flags: {
                 let flags = InitFlags::from_bits_truncate(raw.init_flags);
                 if flags.bits() != raw.init_flags {
-                    warn!("unknown init flags: known flags: {:#X}, raw flags: {:#X}", flags.bits(), raw.init_flags);
+                    warn!(
+                        "unknown init flags: known flags: {:#X}, raw flags: {:#X}",
+                        flags.bits(),
+                        raw.init_flags
+                    );
                 }
                 flags
             },
@@ -447,13 +473,16 @@ impl Header {
             debug_pathname: decode_cstring(raw.debug_pathname_addr)?,
             debug_filename: decode_cstring(raw.debug_filename_addr)?,
             debug_unicode_filename: decode_utf16(raw.debug_unicode_filename_addr)?,
-            kernel_thunk_addr: raw.kernel_thunk_addr,   // can't really decode this due to encoding
+            kernel_thunk_addr: raw.kernel_thunk_addr, // can't really decode this due to encoding
             non_kernel_import_dir_addr: raw.non_kernel_import_dir_addr,
             library_versions: {
                 let addr = raw.rel_addr(raw.library_versions_addr);
                 let mut slice = data.try_get(addr..)?;
 
-                debug!("{} library version structs at {}+", raw.num_library_versions, addr);
+                debug!(
+                    "{} library version structs at {}+",
+                    raw.num_library_versions, addr
+                );
 
                 (0..raw.num_library_versions)
                     .map(|_| LibraryVersion::from_raw(&raw::LibraryVersion::parse(&mut slice)?))
@@ -464,7 +493,9 @@ impl Header {
                     None
                 } else {
                     let addr = raw.rel_addr(raw.kernel_library_version_addr);
-                    Some(LibraryVersion::from_raw(&raw::LibraryVersion::parse(&mut data.try_get(addr..)?)?)?)
+                    Some(LibraryVersion::from_raw(&raw::LibraryVersion::parse(
+                        &mut data.try_get(addr..)?,
+                    )?)?)
                 }
             },
             xapi_library_version: {
@@ -472,16 +503,19 @@ impl Header {
                     None
                 } else {
                     let addr = raw.rel_addr(raw.xapi_library_version_addr);
-                    Some(LibraryVersion::from_raw(&raw::LibraryVersion::parse(&mut data.try_get(addr..)?)?)?)
+                    Some(LibraryVersion::from_raw(&raw::LibraryVersion::parse(
+                        &mut data.try_get(addr..)?,
+                    )?)?)
                 }
             },
             logo_bitmap: {
                 let addr = raw.rel_addr(raw.logo_bitmap_addr);
                 // Prevent overflows during address computation
-                let end = addr.checked_add(raw.logo_bitmap_size)
+                let end = addr
+                    .checked_add(raw.logo_bitmap_size)
                     .ok_or_else(|| Error::addr_overflow(addr, raw.logo_bitmap_size))?;
                 LogoBitmap::decode(data.try_get(addr..end)?)?
-            }
+            },
         })
     }
 
@@ -542,7 +576,7 @@ impl Header {
         let raw = section.raw_range();
         let raw_pos = raw.start().checked_add(offset)?;
         if raw_pos > *raw.end() {
-            None    // section backing data smaller than virt. range
+            None // section backing data smaller than virt. range
         } else {
             Some(raw_pos)
         }
@@ -618,9 +652,10 @@ impl<'a> fmt::Display for AddressInfo<'a> {
                    self.address, self.offset, section.name(), vstart, vend, rstart, rend
             )
         } else {
-            write!(f,
-                   "address {:#08X} is not inside any static XBE section",
-                   self.address
+            write!(
+                f,
+                "address {:#08X} is not inside any static XBE section",
+                self.address
             )
         }
     }
@@ -665,8 +700,11 @@ pub struct Section<'a> {
 impl<'a> Section<'a> {
     fn from_xbe_and_header(xbe_data: &'a [u8], header: &'a SectionHeader) -> Self {
         Self {
-            data: NoDebug(xbe_data.try_get(header.raw_range())
-                .expect("raw_range not in image bounds (internal error)")),
+            data: NoDebug(
+                xbe_data
+                    .try_get(header.raw_range())
+                    .expect("raw_range not in image bounds (internal error)"),
+            ),
             header,
         }
     }
@@ -723,32 +761,43 @@ struct SectionHeader {
 }
 
 impl SectionHeader {
-    fn from_raw(header: &raw::Header, raw: &raw::SectionHeader, data: &[u8]) -> Result<Self, Error> {
+    fn from_raw(
+        header: &raw::Header,
+        raw: &raw::SectionHeader,
+        data: &[u8],
+    ) -> Result<Self, Error> {
         Ok(Self {
             section_flags: {
                 let flags = SectionFlags::from_bits_truncate(raw.section_flags);
                 if flags.bits() != raw.section_flags {
-                    warn!("unknown section flags: known flags: {:#X}, raw flags: {:#X}", flags.bits(), raw.section_flags);
+                    warn!(
+                        "unknown section flags: known flags: {:#X}, raw flags: {:#X}",
+                        flags.bits(),
+                        raw.section_flags
+                    );
                 }
                 flags
             },
             virt_range: {
-                raw.virt_addr.checked_add(raw.virt_size)
+                raw.virt_addr
+                    .checked_add(raw.virt_size)
                     .ok_or_else(|| Error::addr_overflow(raw.virt_addr, raw.virt_size))?;
 
-                raw.virt_addr ..= raw.virt_addr+raw.virt_size
+                raw.virt_addr..=raw.virt_addr + raw.virt_size
             },
             raw_range: {
-                raw.raw_addr.checked_add(raw.raw_size)
+                raw.raw_addr
+                    .checked_add(raw.raw_size)
                     .ok_or_else(|| Error::addr_overflow(raw.raw_addr, raw.raw_size))?;
 
-                let range = raw.raw_addr ..= raw.raw_addr+raw.raw_size;
-                data.try_get(range.clone())?;   // check if in-bounds
+                let range = raw.raw_addr..=raw.raw_addr + raw.raw_size;
+                data.try_get(range.clone())?; // check if in-bounds
                 range
             },
             name: {
                 let name_addr = header.rel_addr(raw.section_name_addr);
-                data.try_get(name_addr..)?.iter()
+                data.try_get(name_addr..)?
+                    .iter()
                     .take_while(|b| **b != 0)
                     .map(|b| *b as char)
                     .collect::<String>()
@@ -822,10 +871,14 @@ impl LibraryVersion {
             flags: {
                 let flags = LibraryFlags::from_bits_truncate(raw.library_flags);
                 if flags.bits() != raw.library_flags {
-                    warn!("unknown library flags: known flags: {:#X}, raw flags: {:#X}", flags.bits(), raw.library_flags);
+                    warn!(
+                        "unknown library flags: known flags: {:#X}, raw flags: {:#X}",
+                        flags.bits(),
+                        raw.library_flags
+                    );
                 }
                 flags
-            }
+            },
         })
     }
 
@@ -916,15 +969,15 @@ impl KernelThunkTable {
             }
 
             // mask off the significant bits
-            let import = import & 0x1FF;    // max = 511
+            let import = import & 0x1FF; // max = 511
             imports.push(ImportId(import));
         }
 
         let num_imports = imports.len() as u32; // can't fail due to XBE size restriction
         Ok(Self {
             import_ids: imports,
-            virt_range: virt_addr ..= virt_addr + num_imports * 4,
-            image_range: raw_addr ..= raw_addr + num_imports * 4,
+            virt_range: virt_addr..=virt_addr + num_imports * 4,
+            image_range: raw_addr..=raw_addr + num_imports * 4,
             bytes: num_imports * 4,
         })
     }
@@ -964,7 +1017,9 @@ impl ImportId {
 
     /// Returns the name of the referenced symbol.
     pub fn name(&self) -> &str {
-        kernel_symbols::KERNEL_SYMBOLS.get(self.0 as usize).unwrap_or(&"<unknown import ID>")
+        kernel_symbols::KERNEL_SYMBOLS
+            .get(self.0 as usize)
+            .unwrap_or(&"<unknown import ID>")
     }
 }
 

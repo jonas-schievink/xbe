@@ -1,18 +1,18 @@
 //! Dumps information about an XBE stored in its headers.
 
-extern crate xbe;
 extern crate env_logger;
+extern crate xbe;
 
 #[allow(unused_imports)]
 #[macro_use]
 extern crate structopt;
 
-use xbe::Xbe;
 use structopt::StructOpt;
+use xbe::Xbe;
 
+use std::error::Error;
 use std::fs::read;
 use std::path::PathBuf;
-use std::error::Error;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "xbe-dump", about = "Dump info from XBE headers to stdout.")]

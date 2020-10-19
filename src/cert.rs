@@ -7,7 +7,7 @@ use crate::error::Error;
 use crate::raw;
 
 use std::fmt;
-use std::time::{SystemTime, Duration, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 /// A certificate included in an XBE image.
 ///
@@ -35,7 +35,7 @@ pub struct Certificate {
     allowed_media: MediaTypes,
     /// See `GameRegion`.
     game_region: GameRegion,
-    game_ratings: u32,  // FIXME format unknown
+    game_ratings: u32, // FIXME format unknown
     disk_number: u32,
     version: u32,
     lan_key: Key,
@@ -58,14 +58,22 @@ impl Certificate {
             allowed_media: {
                 let flags = MediaTypes::from_bits_truncate(raw.allowed_media);
                 if flags.bits() != raw.allowed_media {
-                    warn!("unknown media type flags: known flags: {:#X}, raw flags: {:#X}", flags.bits(), raw.allowed_media);
+                    warn!(
+                        "unknown media type flags: known flags: {:#X}, raw flags: {:#X}",
+                        flags.bits(),
+                        raw.allowed_media
+                    );
                 }
                 flags
             },
             game_region: {
                 let flags = GameRegion::from_bits_truncate(raw.game_region);
                 if flags.bits() != raw.game_region {
-                    warn!("unknown game region flags: known flags: {:#X}, raw flags: {:#X}", flags.bits(), raw.game_region);
+                    warn!(
+                        "unknown game region flags: known flags: {:#X}, raw flags: {:#X}",
+                        flags.bits(),
+                        raw.game_region
+                    );
                 }
                 flags
             },
@@ -80,7 +88,7 @@ impl Certificate {
                     *dest = Key(*src);
                 }
                 keys
-            }
+            },
         })
     }
 

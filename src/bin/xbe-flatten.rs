@@ -3,20 +3,20 @@
 //! This is useful for looking up code and data addresses with the static XBE
 //! data.
 
-extern crate xbe;
 extern crate env_logger;
+extern crate xbe;
 
 #[allow(unused_imports)]
 #[macro_use]
 extern crate structopt;
 
-use xbe::Xbe;
 use structopt::StructOpt;
+use xbe::Xbe;
 
-use std::fs::{File, read};
-use std::io::{self, BufWriter, Write, Seek, SeekFrom};
-use std::path::PathBuf;
 use std::error::Error;
+use std::fs::{read, File};
+use std::io::{self, BufWriter, Seek, SeekFrom, Write};
+use std::path::PathBuf;
 
 const DEFAULT_OUTPUT_EXTENSION: &str = "flat";
 
@@ -24,7 +24,10 @@ const DEFAULT_OUTPUT_EXTENSION: &str = "flat";
 const FILLER: u8 = 0;
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "xbe-flatten", about = "Converts an XBE file to a file containing all sections at their expected virtual addresses.")]
+#[structopt(
+    name = "xbe-flatten",
+    about = "Converts an XBE file to a file containing all sections at their expected virtual addresses."
+)]
 struct Opts {
     /// Path to the XBE file.
     #[structopt(parse(from_os_str))]
@@ -50,7 +53,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     eprintln!("Reading from {}", opt.xbe.display());
     let data = read(&opt.xbe)?;
     let xbe = Xbe::parse(&data)?;
-    let out = opt.output.unwrap_or(opt.xbe.with_extension(DEFAULT_OUTPUT_EXTENSION));
+    let out = opt
+        .output
+        .unwrap_or(opt.xbe.with_extension(DEFAULT_OUTPUT_EXTENSION));
     eprintln!("  Writing to {}", out.display());
     let mut out = BufWriter::new(File::create(&out)?);
 

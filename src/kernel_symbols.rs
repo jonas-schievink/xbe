@@ -6,7 +6,7 @@
 /// Associates symbol import IDs from the kernel thunk table with human-readable
 /// names.
 pub static KERNEL_SYMBOLS: &[&str; 379] = &[
-    "(#0 unused)",    // 0 unused apparently
+    "(#0 unused)", // 0 unused apparently
     "AvGetSavedDataAddress",
     "AvSendTVEncoderOption",
     "AvSetDisplayMode",

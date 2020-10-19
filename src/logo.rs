@@ -81,7 +81,11 @@ impl LogoBitmap {
                 for _ in 0..length {
                     match pixel_iter.next() {
                         Some(pix) => *pix = data,
-                        None => return Err(Error::Malformed("RLE encoding too long for bitmap buffer".to_string())),
+                        None => {
+                            return Err(Error::Malformed(
+                                "RLE encoding too long for bitmap buffer".to_string(),
+                            ))
+                        }
                     }
                 }
             }
@@ -102,7 +106,11 @@ impl LogoBitmap {
     /// thinner and wider. This is a consequence of using a character to
     /// represent each pixel.
     pub fn to_multiline_drawing(&self) -> String {
-        self.pixels.iter().map(display_row).collect::<Vec<_>>().join("\n")
+        self.pixels
+            .iter()
+            .map(display_row)
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
     /// Converts this image to a pixel buffer storing 8-bit grayscale pixels.
@@ -114,7 +122,12 @@ impl LogoBitmap {
     /// pixels, followed by 100 bytes for the second row.
     pub fn to_8bit_grayscale(&self) -> [u8; 100 * 17] {
         let mut buf = [0u8; 100 * 17];
-        for (src, dest) in self.pixels.iter().flat_map(|row| row.iter()).zip(&mut buf[..]) {
+        for (src, dest) in self
+            .pixels
+            .iter()
+            .flat_map(|row| row.iter())
+            .zip(&mut buf[..])
+        {
             *dest = to_8bit(*src);
         }
         buf
@@ -145,10 +158,10 @@ fn byte_to_ascii_pixel(b: u8) -> char {
     assert_eq!(b & 0x0f, b, "invalid 4-bit color value {:#X}", b);
 
     let chars: [char; 16] = [
-        ' ', '.', '-', ':', '~', '=', '+', '*',
-        'a', '!', '$', '&', '%', '@', 'M', 'W',
+        ' ', '.', '-', ':', '~', '=', '+', '*', 'a', '!', '$', '&', '%', '@', 'M', 'W',
     ];
-    *chars.get(b as usize)
+    *chars
+        .get(b as usize)
         .expect("4-bit value out of range (should never happen)")
 }
 
@@ -210,8 +223,20 @@ impl RleChunk {
 impl fmt::Debug for RleChunk {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            RleChunk::Byte(b) => write!(f, "byte (raw {:08b}) {:04b} {:03b} 1", b, self.data(), self.length()),
-            RleChunk::Word(w) => write!(f, "word (raw {:016b}) {:04b} {:010b} 10", w, self.data(), self.length()),
+            RleChunk::Byte(b) => write!(
+                f,
+                "byte (raw {:08b}) {:04b} {:03b} 1",
+                b,
+                self.data(),
+                self.length()
+            ),
+            RleChunk::Word(w) => write!(
+                f,
+                "word (raw {:016b}) {:04b} {:010b} 10",
+                w,
+                self.data(),
+                self.length()
+            ),
         }
     }
 }

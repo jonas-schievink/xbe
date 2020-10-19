@@ -15,8 +15,8 @@
 use crate::Error;
 use serde::de;
 
-use std::{fmt, u32};
 use std::marker::PhantomData;
+use std::{fmt, u32};
 
 // All addresses refer to the address *after* loading the XBE into memory
 
@@ -103,15 +103,16 @@ impl Header {
         // invalid operation and we just return the largest possible value which
         // will trigger an out of bounds access later.
 
-        addr.checked_sub(self.base_addr)
-            .unwrap_or(u32::MAX)
+        addr.checked_sub(self.base_addr).unwrap_or(u32::MAX)
     }
 }
 
 /// A serde visitor that deserializes a fixed number of elements as a sequence
 /// and passes them to a closure to be put into the final result type.
 struct SliceAdapter<F, S: 'static, R>
-where F: FnOnce(&[S]) -> R {
+where
+    F: FnOnce(&[S]) -> R,
+{
     /// Maps the decoded byte slice to the final result value of type `T`.
     ///
     /// The passed slice always has length `num_bytes`.
@@ -124,10 +125,13 @@ where F: FnOnce(&[S]) -> R {
 }
 
 impl<F, S: 'static, R> SliceAdapter<F, S, R>
-where F: FnOnce(&[S]) -> R {
+where
+    F: FnOnce(&[S]) -> R,
+{
     fn new(map: F, expected: &'static str, num_bytes: usize) -> Self {
         Self {
-            map, expected,
+            map,
+            expected,
             num_elements: num_bytes,
             _phantom: PhantomData,
         }
@@ -137,7 +141,7 @@ where F: FnOnce(&[S]) -> R {
 impl<'de, F, S: 'static, R> de::Visitor<'de> for SliceAdapter<F, S, R>
 where
     F: FnOnce(&[S]) -> R,
-    S: de::Deserialize<'de>
+    S: de::Deserialize<'de>,
 {
     type Value = R;
 
@@ -145,9 +149,10 @@ where
         write!(formatter, "{}", self.expected)
     }
 
-    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error> where
-        A: de::SeqAccess<'de>, {
-
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: de::SeqAccess<'de>,
+    {
         // *chants* GIVE US CONST GENERICS NOW!
         // Seriously the number of times I could've vastly simplified, sped up
         // and deduplicated code if const generics were a thing is enormous.
@@ -178,19 +183,23 @@ impl fmt::Debug for Signature {
 }
 
 impl<'de> de::Deserialize<'de> for Signature {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
-        D: de::Deserializer<'de> {
-
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
         // we use tuple instead of seq or bytes here since we know the length
-        deserializer.deserialize_tuple(256, SliceAdapter::new(
-            |slice| {
-                let mut buf = [0; 256];
-                buf.copy_from_slice(slice);
-                Signature(buf)
-            },
-            "signature blob (256 Bytes)",
+        deserializer.deserialize_tuple(
             256,
-        ))
+            SliceAdapter::new(
+                |slice| {
+                    let mut buf = [0; 256];
+                    buf.copy_from_slice(slice);
+                    Signature(buf)
+                },
+                "signature blob (256 Bytes)",
+                256,
+            ),
+        )
     }
 }
 
@@ -201,7 +210,7 @@ pub struct Certificate {
     pub time_date: u32,
     pub title_id: u32,
     /// Title name of the application, wide string of up to 40 code points (chars?).
-    pub title_name: TitleName,  // 0x50 bytes
+    pub title_name: TitleName, // 0x50 bytes
     /// Array of alternative `title_id`s (or zeros).
     pub alt_title_ids: [u32; 16],
     /// Allowed media types.
@@ -221,8 +230,7 @@ pub struct Certificate {
 
 impl Certificate {
     pub fn parse(data: &mut &[u8]) -> Result<Self, Error> {
-        ::bincode::deserialize_from(data)
-            .map_err(|e| Error::Malformed(format!("{:?}", e)))
+        ::bincode::deserialize_from(data).map_err(|e| Error::Malformed(format!("{:?}", e)))
     }
 }
 
@@ -239,19 +247,23 @@ impl fmt::Debug for TitleName {
 }
 
 impl<'de> de::Deserialize<'de> for TitleName {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
-        D: de::Deserializer<'de> {
-
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
         // we use tuple instead of seq or bytes here since we know the length
-        deserializer.deserialize_tuple(40, SliceAdapter::new(
-            |slice| {
-                let mut buf = [0u16; 40];
-                buf.copy_from_slice(slice);
-                TitleName(buf)
-            },
-            "title name (80 Bytes)",
+        deserializer.deserialize_tuple(
             40,
-        ))
+            SliceAdapter::new(
+                |slice| {
+                    let mut buf = [0u16; 40];
+                    buf.copy_from_slice(slice);
+                    TitleName(buf)
+                },
+                "title name (80 Bytes)",
+                40,
+            ),
+        )
     }
 }
 
@@ -278,8 +290,7 @@ pub struct SectionHeader {
 
 impl SectionHeader {
     pub fn parse(data: &mut &[u8]) -> Result<Self, Error> {
-        ::bincode::deserialize_from(data)
-            .map_err(|e| Error::Malformed(format!("{:?}", e)))
+        ::bincode::deserialize_from(data).map_err(|e| Error::Malformed(format!("{:?}", e)))
     }
 }
 
@@ -302,8 +313,7 @@ pub struct LibraryVersion {
 
 impl LibraryVersion {
     pub fn parse(data: &mut &[u8]) -> Result<Self, Error> {
-        ::bincode::deserialize_from(data)
-            .map_err(|e| Error::Malformed(format!("{:?}", e)))
+        ::bincode::deserialize_from(data).map_err(|e| Error::Malformed(format!("{:?}", e)))
     }
 }
 
@@ -319,7 +329,6 @@ pub struct Tls {
 
 impl Tls {
     pub fn parse(data: &mut &[u8]) -> Result<Self, Error> {
-        ::bincode::deserialize_from(data)
-            .map_err(|e| Error::Malformed(format!("{:?}", e)))
+        ::bincode::deserialize_from(data).map_err(|e| Error::Malformed(format!("{:?}", e)))
     }
 }
