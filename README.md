@@ -2,7 +2,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/xbe.svg)](https://crates.io/crates/xbe)
 [![docs.rs](https://docs.rs/xbe/badge.svg)](https://docs.rs/xbe/)
-[![Build Status](https://travis-ci.org/jonas-schievink/xbe.svg?branch=master)](https://travis-ci.org/jonas-schievink/xbe)
+![CI](https://github.com/jonas-schievink/xbe/workflows/CI/badge.svg)
 
 This crate provides a parser for `.xbe` files, which were used by the original
 Xbox to store executable files. It aims to provide a simple and well-documented
